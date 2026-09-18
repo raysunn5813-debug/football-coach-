@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gameday — Chalkboard Football Coach</title>
+  <meta name="description" content="Live game simulation with play-by-play football coaching.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+
+    body, html {
+      margin: 0; padding: 0;
+      width: 100vw; height: 100vh;
+      background: #060d1a;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      overflow: hidden;
+      font-family: 'Inter', system-ui, sans-serif;
+    }
+
+    /* ── Top Header ─────────────────────────────────────────── */
+    .gameday-header {
+      width: 100%; max-width: 1280px;
+      padding: 10px 24px;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .gameday-header h2 {
+      color: #fff; margin: 0;
+      font-family: 'Orbitron', sans-serif; font-size: 18px;
+    }
+    .hdr-btn {
+      background: #1e3a5f; color: #fff;
+      border: 1px solid rgba(59,130,246,0.4);
+      border-radius: 6px; padding: 7px 14px;
+      font-size: 12px; font-weight: 600;
+      cursor: pointer; transition: all 0.2s;
+      margin-left: 8px;
+    }
+    .hdr-btn:hover { background: #2563eb; }
+    .hdr-btn.danger { background: #7f1d1d; border-color: rgba(239,68,68,0.4); }
+    .hdr-btn.danger:hover { background: #dc2626; }
+
+    /* ── 3D Field Container ─────────────────────────────────── */
+    #game-container {
+      width: 95vw; max-width: 1280px;
+      aspect-ratio: 16/9; max-height: 80vh;
+      position: relative;
+      background: #111827;
+      border-radius: 12px;
+      box-shadow: 0 12px 40px rgba(0,0,0,0.8);
+      overflow: hidden;
+    }
+    #game-canvas { width: 100%; height: 100%; object-fit: contain; display: block; }
+
+    /* ── Scorebug overlay (top of field) ───────────────────── */
+    #scorebug {
+      position: absolute; top: 12px; left: 50%; transform: translateX(-50%);
+      background: rgba(5,10,25,0.88); backdrop-filter: blur(10px);
+      border: 1px solid rgba(59,130,246,0.3);
+      border-radius: 8px; padding: 6px 20px;
+      display: flex; align-items: center; gap: 18px;
+      font-family: 'Orbitron', sans-serif;
+      font-size: 12px; color: #fff;
+      z-index: 50; white-space: nowrap;
+    }
+    .sb-score { font-size: 16px; font-weight: 900; letter-spacing: 2px; }
+    .sb-divider { color: rgba(255,255,255,0.3); }
+    .sb-label { color: #94a3b8; font-size: 10px; font-weight: 600; letter-spacing: 1px; }
+    #sb-down { color: #fbbf24; font-weight: 700; }
+    #sb-clock { color: #34d399; font-weight: 700; }
+
+    /* ════════════════════════════════════════════════════════════
+       PLAY CALL OVERLAY
+       Full-screen panel that slides up from the bottom of the field
+    ════════════════════════════════════════════════════════════ */
+    #playcall-overlay {
+      position: absolute; inset: 0;
+      background: rgba(4, 9, 22, 0.96);
+      backdrop-filter: blur(4px);
+      z-index: 200;
+      display: grid;
+      grid-template-columns: 200px 1fr 200px;
+      grid-template-rows: 1fr;
+      gap: 0;
+      opacity: 1;
+      transition: opacity 0.25s ease, transform 0.3s ease;
+    }
+    #playcall-overlay.hidden {
+      opacity: 0; pointer-events: none;
+      transform: translateY(20px);
+    }
+
+    /* ── LEFT PANEL — game state + timeouts ───────────────── */
+    .pco-left {
+      background: rgba(8,16,36,0.9);
+      border-right: 1px solid rgba(59,130,246,0.2);
+      padding: 14px 12px;
+      display: flex; flex-direction: column; gap: 12px;
+      overflow: hidden;
+    }
+
+    .pco-section-label {
+      font-size: 9px; font-weight: 700; letter-spacing: 2px;
+      color: #475569; text-transform: uppercase; margin-bottom: 4px;
+    }
+
+    .pco-stat-box {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 6px; padding: 8px 10px;
+    }
+    .pco-stat-box .val {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 18px; font-weight: 900; color: #fbbf24;
+    }
+    .pco-stat-box .sub { font-size: 10px; color: #64748b; margin-top: 2px; }
+
+    /* Timeout dots */
+    .timeout-row {
+      display: flex; gap: 6px; align-items: center;
+    }
+    .to-dot {
+      width: 14px; height: 14px; border-radius: 50%;
+      background: #fbbf24;
+      box-shadow: 0 0 8px rgba(251,191,36,0.5);
+      transition: all 0.3s;
+    }
+    .to-dot.used { background: #1e293b; box-shadow: none; }
+
+    /* Timeout button */
+    #timeout-btn {
+      width: 100%;
+      padding: 10px 6px;
+      background: linear-gradient(135deg, #b45309, #d97706);
+      color: #fff; border: none; border-radius: 8px;
+      font-family: 'Orbitron', sans-serif;
+      font-size: 10px; font-weight: 700; letter-spacing: 1px;
+      cursor: pointer; transition: all 0.2s;
+      box-shadow: 0 4px 12px rgba(217,119,6,0.3);
+    }
+    #timeout-btn:hover { transform: scale(1.02); background: linear-gradient(135deg, #d97706, #f59e0b); }
+    #timeout-btn:disabled { background: #1e293b; color: #475569; box-shadow: none; cursor: not-allowed; }
+
+    /* Tendency bars */
+    .tend-bar-wrap { margin-top: 4px; }
+    .tend-label-row { display: flex; justify-content: space-between; font-size: 10px; color: #94a3b8; margin-bottom: 3px; }
+    .tend-bar { height: 6px; border-radius: 3px; background: rgba(255,255,255,0.08); overflow: hidden; }
+    .tend-fill { height: 100%; border-radius: 3px; transition: width 0.5s; }
+
+    /* ── CENTER PANEL — formation + plays ─────────────────── */
+    .pco-center {
+      display: flex; flex-direction: column;
+      height: 100%; min-height: 0;
+      padding: 10px 12px; gap: 8px; overflow: hidden;
+    }
+
+    /* Formation tabs */
+    .formation-tabs {
+      display: flex; gap: 4px;
+    }
+    .form-tab {
+      flex: 1; padding: 6px 4px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 6px; color: #64748b;
+      font-size: 10px; font-weight: 700; letter-spacing: 0.5px;
+      cursor: pointer; transition: all 0.2s; text-align: center;
+    }
+    .form-tab.active { background: #1d4ed8; color: #fff; border-color: #3b82f6; }
+    .form-tab.locked { opacity: 0.35; cursor: not-allowed; }
+
+    /* Category filter pills */
+    .category-pills {
+      display: flex; gap: 6px;
+    }
+    .cat-pill {
+      padding: 4px 12px; border-radius: 20px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1);
+      color: #94a3b8; font-size: 10px; font-weight: 700;
+      letter-spacing: 1px; cursor: pointer; transition: all 0.15s;
+    }
+    .cat-pill:hover { border-color: #60a5fa; color: #fff; }
+    .cat-pill.active { background: rgba(59,130,246,0.2); border-color: #3b82f6; color: #60a5fa; }
+    .cat-pill.run.active { background: rgba(34,197,94,0.15); border-color: #22c55e; color: #4ade80; }
+    .cat-pill.short.active { background: rgba(251,191,36,0.15); border-color: #fbbf24; color: #fde68a; }
+    .cat-pill.deep.active { background: rgba(168,85,247,0.15); border-color: #a855f7; color: #d8b4fe; }
+    .cat-pill.special.active { background: rgba(239,68,68,0.15); border-color: #ef4444; color: #fca5a5; }
+
+    /* Play grid */
+    #play-grid, #play-grid-container, .play-grid {
+      flex: 1;
+      min-height: 0 !important;
+      height: 100% !important;
+      display: grid !important;
+      grid-template-columns: repeat(3, 1fr) !important;
+      grid-auto-rows: min-content !important;
+      gap: 10px !important;
+      align-content: start !important;
+      overflow-y: auto !important;
+      padding-right: 6px !important;
+      box-sizing: border-box !important;
+    }
+    #play-grid::-webkit-scrollbar, #play-grid-container::-webkit-scrollbar { width: 5px; }
+    #play-grid::-webkit-scrollbar-track, #play-grid-container::-webkit-scrollbar-track { background: rgba(15,23,42,0.5); }
+    #play-grid::-webkit-scrollbar-thumb, #play-grid-container::-webkit-scrollbar-thumb { background: rgba(59,130,246,0.4); border-radius: 3px; }
+
+    .play-card {
+      background: rgba(15,25,50,0.9);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 8px;
+      padding: 6px;
+      display: flex;
+      flex-direction: column;
+      min-height: 140px;
+      cursor: pointer;
+      transition: all 0.18s;
+      position: relative;
+      box-sizing: border-box;
+    }
+    .play-card:hover { border-color: #3b82f6; transform: translateY(-2px); box-shadow: 0 6px 20px rgba(59,130,246,0.3); }
+    .play-card.selected { border-color: #fbbf24; box-shadow: 0 0 0 2px rgba(251,191,36,0.4); background: rgba(30,41,59,0.95); }
+
+    .play-card canvas { width: 100% !important; height: 100px !important; min-height: 100px !important; display: block !important; border-radius: 4px; background: #0b1329; }
+
+    .play-card-footer {
+      padding: 6px 4px 2px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .play-card-name {
+      font-size: 10px; font-weight: 700; color: #e2e8f0;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .play-type-badge {
+      font-size: 8px; font-weight: 800; letter-spacing: 0.5px;
+      padding: 2px 6px; border-radius: 3px; flex-shrink: 0;
+    }
+    .badge-run   { background: rgba(34,197,94,0.2); color: #4ade80; border: 1px solid rgba(34,197,94,0.3); }
+    .badge-short { background: rgba(251,191,36,0.15); color: #fde68a; border: 1px solid rgba(251,191,36,0.3); }
+    .badge-deep  { background: rgba(168,85,247,0.15); color: #d8b4fe; border: 1px solid rgba(168,85,247,0.3); }
+
+    /* Snap button row */
+    .pco-snap-row {
+      display: flex; gap: 8px;
+    }
+    #no-huddle-btn {
+      flex: 1; padding: 11px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 8px; color: #94a3b8;
+      font-size: 11px; font-weight: 700; cursor: pointer;
+      transition: all 0.2s;
+    }
+    #no-huddle-btn:hover { background: rgba(59,130,246,0.15); color: #fff; border-color: #3b82f6; }
+    #snap-btn {
+      flex: 2; padding: 11px;
+      background: linear-gradient(135deg, #059669, #10b981);
+      border: none; border-radius: 8px;
+      color: #fff; font-family: 'Orbitron', sans-serif;
+      font-size: 12px; font-weight: 900; letter-spacing: 1px;
+      cursor: pointer; transition: all 0.2s;
+      box-shadow: 0 4px 16px rgba(16,185,129,0.35);
+    }
+    #snap-btn:hover { transform: scale(1.02); box-shadow: 0 6px 22px rgba(16,185,129,0.5); }
+    #snap-btn:disabled { background: #1e293b; color: #475569; box-shadow: none; cursor: not-allowed; transform: none; }
+
+    /* ── RIGHT PANEL — play history ───────────────────────── */
+    .pco-right {
+      background: rgba(8,16,36,0.9);
+      border-left: 1px solid rgba(59,130,246,0.2);
+      padding: 14px 12px;
+      display: flex; flex-direction: column; gap: 10px;
+      overflow: hidden;
+    }
+
+    .history-card {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 6px; padding: 7px 9px;
+      display: flex; flex-direction: column; gap: 3px;
+    }
+    .history-card .h-play { font-size: 11px; font-weight: 700; color: #e2e8f0; }
+    .history-card .h-yards {
+      font-family: 'Orbitron', sans-serif; font-size: 13px; font-weight: 900;
+    }
+    .h-yards.positive { color: #34d399; }
+    .h-yards.negative { color: #ef4444; }
+    .history-card .h-type { font-size: 9px; color: #64748b; }
+
+    /* Personnel / down info */
+    .personnel-row {
+      display: flex; gap: 6px; flex-wrap: wrap;
+    }
+    .pers-chip {
+      background: rgba(59,130,246,0.1);
+      border: 1px solid rgba(59,130,246,0.25);
+      border-radius: 4px; padding: 3px 7px;
+      font-size: 10px; font-weight: 700; color: #93c5fd;
+    }
+
+    /* Timeout notification modal */
+    #timeout-modal {
+      position: absolute; inset: 0;
+      background: rgba(0,0,0,0.75);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 500; opacity: 0; pointer-events: none;
+      transition: opacity 0.2s;
+    }
+    #timeout-modal.show { opacity: 1; pointer-events: all; }
+    .to-modal-box {
+      background: #0d1f3c;
+      border: 2px solid #d97706;
+      border-radius: 14px; padding: 30px 36px;
+      text-align: center; max-width: 300px;
+      box-shadow: 0 0 60px rgba(217,119,6,0.3);
+    }
+    .to-modal-box h3 { color: #fbbf24; font-family: 'Orbitron', sans-serif; margin: 0 0 8px; font-size: 18px; }
+    .to-modal-box p { color: #94a3b8; font-size: 13px; margin: 0 0 20px; }
+    .to-modal-box .to-count { font-size: 32px; font-weight: 900; color: #fde68a; font-family: 'Orbitron', sans-serif; }
+    .to-modal-dismiss {
+      margin-top: 16px;
+      background: rgba(255,255,255,0.08); color: #94a3b8;
+      border: 1px solid rgba(255,255,255,0.12); border-radius: 6px;
+      padding: 8px 20px; cursor: pointer; font-size: 12px;
+      transition: all 0.15s;
+    }
+    .to-modal-dismiss:hover { background: rgba(255,255,255,0.15); color: #fff; }
+  </style>
+</head>
+<body>
+
+  <!-- Top Header -->
+    <div class="gameday-header">
+      <h2>Gameday Coverage</h2>
+      <div>
+        <button class="hdr-btn" id="telemetry-toggle-btn">📡 INSPECTOR</button>
+        <button class="hdr-btn" id="camera-toggle-btn">📷 Broadcast</button>
+        <a href="index.html" class="hdr-btn danger" style="text-decoration:none;">Exit to Office 🚪</a>
+      </div>
+    </div>
+
+  <!-- 3D Field -->
+  <div id="game-container">
+    <!-- Telemetry Inspector Overlay -->
+    <div id="telemetry-inspector-overlay" style="position:absolute; top:16px; right:16px; width:360px; max-height:calc(100% - 32px); background:rgba(6,13,26,0.95); backdrop-filter:blur(12px); border:1px solid rgba(59,130,246,0.5); border-radius:10px; padding:14px; font-family:'Inter',sans-serif; color:#e2e8f0; z-index:9999; display:none; flex-direction:column; gap:10px; box-shadow:0 12px 40px rgba(0,0,0,0.9); overflow:hidden;">
+      <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:8px;">
+        <div style="font-family:'Orbitron',sans-serif; font-size:13px; font-weight:700; color:#38bdf8; display:flex; align-items:center; gap:6px;">
+          📡 WIRE-UP INSPECTOR
+        </div>
+        <span id="telemetry-status-badge" style="font-size:10px; background:#10b981; color:#022c22; padding:2px 8px; border-radius:10px; font-weight:700;">60Hz STREAM</span>
+      </div>
+
+      <div id="telemetry-warnings-list" style="display:flex; flex-direction:column; gap:6px; max-height:260px; overflow-y:auto; font-size:11px; padding-right:4px;">
+        <div style="color:#64748b; font-size:11px; text-align:center; padding:12px 0;">Click "Fetch Replays" or run a play to inspect telemetry...</div>
+      </div>
+
+      <div style="border-top:1px solid rgba(255,255,255,0.1); pt:6px; display:flex; justify-content:space-between; align-items:center; font-size:10px; color:#94a3b8; margin-top:4px;">
+        <span id="telemetry-tick-count">Tick: 0</span>
+        <button id="telemetry-fetch-replays-btn" style="background:#1e293b; color:#38bdf8; border:1px solid #334155; border-radius:4px; padding:5px 10px; font-size:10px; font-weight:600; cursor:pointer;">📁 Fetch Replays</button>
+      </div>
+    </div>
+
+    <script>
+      window.toggleTelemetryInspector = function() {
+        const overlay = document.getElementById('telemetry-inspector-overlay');
+        if (!overlay) return;
+        const isHidden = overlay.style.display === 'none' || !overlay.style.display;
+        overlay.style.display = isHidden ? 'flex' : 'none';
+        const btn = document.getElementById('telemetry-toggle-btn');
+        if (btn) btn.style.background = isHidden ? '#0284c7' : '#1e3a5f';
+        if (isHidden) {
+          window.fetchTelemetryReplays();
+        }
+      };
+
+      window.fetchTelemetryReplays = async function() {
+        const list = document.getElementById('telemetry-warnings-list');
+        if (!list) return;
+        list.innerHTML = '<div style="color:#94a3b8; font-size:11px; text-align:center; padding:12px 0;">Loading replays...</div>';
+        try {
+          const res = await fetch('/api/telemetry/replays');
+          const data = await res.json();
+          list.innerHTML = '';
+          if (data.replays && data.replays.length > 0) {
+            data.replays.forEach(r => {
+              const item = document.createElement('div');
+              item.style.cssText = 'background:rgba(30,41,59,0.85); border:1px solid rgba(59,130,246,0.3); border-radius:6px; padding:8px 10px; color:#e2e8f0; font-size:11px; display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:4px;';
+              const playTitle = r.metadata.play_name || (r.metadata.play_id ? `Play #${r.metadata.play_id}` : r.filename);
+              const playType = r.metadata.play_type ? ` [${r.metadata.play_type}]` : '';
+              item.innerHTML = `<div><strong style="color:#38bdf8; font-size:12px;">🏈 ${playTitle}${playType}</strong><br><span style="color:#94a3b8; font-size:10px;">${r.filename} | Ticks: ${r.metadata.total_ticks || 0} | Anomalies: ${r.metadata.anomaly_count || 0}</span></div><a href="/api/telemetry/replay/${r.filename}" download="${r.filename}" target="_blank" style="background:#0284c7; color:#fff; padding:4px 8px; border-radius:4px; text-decoration:none; font-weight:700; font-size:10px;">⬇ JSON</a>`;
+              list.appendChild(item);
+            });
+          } else {
+            list.innerHTML = '<div style="color:#64748b; font-size:11px; text-align:center; padding:12px 0;">No replay files found.</div>';
+          }
+        } catch (err) {
+          console.error('Error fetching replays:', err);
+          list.innerHTML = `<div style="color:#ef4444; font-size:11px; text-align:center;">Error loading replays: ${err.message}</div>`;
+        }
+      };
+    </script>
+    <canvas id="game-canvas"></canvas>
+
+    <!-- Floating Bottom-Right Corner SNAP Button -->
+    <button id="hud-snap-btn" class="hud-snap-floating-btn" style="display: none; position: absolute; bottom: 28px; right: 28px; z-index: 900; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: #ffffff; border: 2px solid #34d399; border-radius: 12px; padding: 14px 28px; font-family: 'Orbitron', sans-serif; font-size: 16px; font-weight: 800; letter-spacing: 1.5px; cursor: pointer; box-shadow: 0 8px 30px rgba(16, 185, 129, 0.5), 0 0 15px rgba(52, 211, 153, 0.4); display: flex; align-items: center; gap: 10px; transition: all 0.2s ease;">
+      <span style="font-size: 20px;">🏈</span> SNAP PLAY
+    </button>
+
+    <!-- Scorebug (always visible) -->
+    <div id="scorebug">
+      <span class="sb-label">HOME</span>
+      <span class="sb-score" id="sb-score-home">0</span>
+      <span class="sb-divider">—</span>
+      <span class="sb-score" id="sb-score-away">0</span>
+      <span class="sb-label">AWAY</span>
+      <span class="sb-divider">|</span>
+      <span id="sb-down">1st &amp; 10</span>
+      <span class="sb-divider">|</span>
+      <span id="sb-clock">Q1 | 15:00</span>
+      <span class="sb-divider">|</span>
+      <span class="sb-label">PLAY CLOCK:</span>
+      <span id="play-clock-display" style="color: #ffffff; font-weight: 700;">25</span>
+    </div>
+
+    <!-- Penalty Toast Banner -->
+    <div id="penalty-toast" style="display: none; position: absolute; top: 60px; left: 50%; transform: translateX(-50%); background: rgba(220, 38, 38, 0.95); color: #fff; padding: 10px 24px; border-radius: 8px; font-family: 'Orbitron', sans-serif; font-weight: 700; font-size: 14px; box-shadow: 0 4px 20px rgba(220, 38, 38, 0.5); z-index: 300; letter-spacing: 1px; border: 1px solid #fca5a5; text-align: center;">
+      <span id="penalty-text">⚠️ PENALTY: Delay of Game! 5-yard penalty.</span>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════
+         PLAY CALL OVERLAY
+    ══════════════════════════════════════════════════════ -->
+    <div id="playcall-overlay">
+
+      <!-- LEFT: Game State + Timeouts -->
+      <div class="pco-left">
+        <div>
+          <div class="pco-section-label">Situation</div>
+          <div class="pco-stat-box">
+            <div class="val" id="pco-down">1st &amp; 10</div>
+            <div class="sub" id="pco-location">OWN 25</div>
+            <div style="display:flex; justify-content:space-between; margin-top:6px; padding-top:6px; border-top:1px solid rgba(255,255,255,0.08); font-size:11px;">
+              <span style="color:#94a3b8;">CLOCK: <strong id="pco-game-clock" style="color:#34d399; font-family:'Orbitron',sans-serif;">15:00</strong></span>
+              <span style="color:#94a3b8;">TIMER: <strong id="pco-play-clock" style="color:#fbbf24; font-family:'Orbitron',sans-serif;">25s</strong></span>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <div class="pco-section-label">Timeouts</div>
+          <div class="timeout-row" id="timeout-dots">
+            <div class="to-dot" id="to-1"></div>
+            <div class="to-dot" id="to-2"></div>
+            <div class="to-dot" id="to-3"></div>
+          </div>
+        </div>
+
+        <button id="timeout-btn">⏱ TIMEOUT</button>
+
+        <div>
+          <div class="pco-section-label">Personnel</div>
+          <div class="personnel-row">
+            <span class="pers-chip">1 RB</span>
+            <span class="pers-chip">1 TE</span>
+            <span class="pers-chip">3 WR</span>
+          </div>
+        </div>
+
+        <div>
+          <div class="pco-section-label">Tendency</div>
+          <div class="tend-bar-wrap">
+            <div class="tend-label-row"><span>RUN</span><span id="tend-run-pct">40%</span></div>
+            <div class="tend-bar"><div class="tend-fill" id="tend-run-bar" style="width:40%;background:#22c55e;"></div></div>
+          </div>
+          <div class="tend-bar-wrap" style="margin-top:6px">
+            <div class="tend-label-row"><span>PASS</span><span id="tend-pass-pct">60%</span></div>
+            <div class="tend-bar"><div class="tend-fill" id="tend-pass-bar" style="width:60%;background:#3b82f6;"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CENTER: Category Filter + Play Grid -->
+      <div class="pco-center playbook-selection-area">
+        <!-- Category Sub-Filters -->
+        <div class="category-tabs">
+          <button class="sub-tab-btn active" data-category="ALL">ALL</button>
+          <button class="sub-tab-btn" data-category="RUN">RUN</button>
+          <button class="sub-tab-btn" data-category="SHORT">SHORT</button>
+          <button class="sub-tab-btn" data-category="DEEP">DEEP</button>
+          <button class="sub-tab-btn" data-category="DEFENSE" style="color:#38bdf8; border-color:rgba(56,189,248,0.4);">🛡️ DEFENSE</button>
+          <button class="sub-tab-btn" data-category="SPECIAL">SPECIAL (4th DOWN)</button>
+        </div>
+
+        <!-- PLAY GRID CONTAINER -->
+        <div id="play-grid-container" class="play-grid"></div>
+
+        <!-- Bottom Control Bar -->
+        <div class="playbook-bottom-bar pco-snap-row" style="display:flex; justify-content:space-between; align-items:center;">
+          <button id="ai-coach-btn" class="automation-btn">🤖 ASK COACH</button>
+          <div style="font-size:12px; color:#38bdf8; font-weight:700; display:flex; align-items:center; gap:6px; background:rgba(56,189,248,0.1); border:1px solid rgba(56,189,248,0.3); padding:6px 14px; border-radius:6px;">
+            💡 Double-click any play card to line up on field
+          </div>
+          <button id="no-huddle-btn">⚡ NO HUDDLE</button>
+        </div>
+      </div>
+
+      <!-- RIGHT: Play History + Opponent Tendencies -->
+      <div class="pco-right">
+        <div>
+          <div class="pco-section-label">Play History</div>
+          <div id="play-history-list" style="display:flex;flex-direction:column;gap:7px;">
+            <div style="color:#334155;font-size:11px;text-align:center;margin-top:12px;">No plays yet</div>
+          </div>
+        </div>
+
+        <div style="margin-top:auto;">
+          <div class="pco-section-label">Matchup Evaluator</div>
+          <div class="pco-stat-box" id="matchup-eval-box" style="font-size:11px;color:#94a3b8;line-height:1.7;">
+            📊 Select a play to evaluate success odds...
+          </div>
+        </div>
+      </div>
+    </div><!-- /playcall-overlay -->
+
+    <!-- Timeout notification modal -->
+    <div id="timeout-modal">
+      <div class="to-modal-box">
+        <h3>⏱ TIMEOUT</h3>
+        <div class="to-count" id="to-remaining-count">2</div>
+        <p>Timeouts Remaining</p>
+        <button class="to-modal-dismiss" id="to-dismiss-btn">Resume Play Calling</button>
+      </div>
+    </div>
+
+  </div><!-- /game-container -->
+
+    <script type="module" src="js/gameday.js?v=19"></script>
+</body>
+</html>

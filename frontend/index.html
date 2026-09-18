@@ -1,0 +1,851 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Coach's Office - Football Management Simulation</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Orbitron:wght@700;900&family=Playfair+Display:ital,wght@1,700&display=swap" rel="stylesheet">
+    <!-- Three.js CDN for 3D rendering -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- Main Style -->
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="logo-area">
+                <span class="icon">🏈</span>
+                <div class="logo-text">
+                    <h1>COACH'S OFFICE</h1>
+                    <span>FOOTBALL MANAGER</span>
+                </div>
+            </div>
+            <nav class="nav-links">
+                <button class="nav-btn active" data-target="dashboard">
+                    <span class="nav-icon">📊</span> Dashboard
+                </button>
+                <button class="nav-btn" data-target="practice">
+                    <span class="nav-icon">🏃</span> Weekly Practice
+                </button>
+                <button class="nav-btn" data-target="roster">
+                    <span class="nav-icon">📋</span> Team Roster
+                </button>
+                <button class="nav-btn" data-target="standings">
+                    <span class="nav-icon">🏆</span> League Standings
+                </button>
+                <button class="nav-btn" data-target="stats">
+                    <span class="nav-icon">🎮</span> Stat Leaders
+                </button>
+                <button class="nav-btn" data-target="trade">
+                    <span class="nav-icon">🤝</span> Trade Portal
+                </button>
+                <button class="nav-btn" data-target="coaches">
+                    <span class="nav-icon">👔</span> Coach's Office &amp; Staff
+                </button>
+                <button class="nav-btn" data-target="freeagents" id="freeagents-nav-btn">
+                    <span class="nav-icon">💸</span> Free Agents
+                </button>
+                <button class="nav-btn" data-target="filmroom">
+                    <span class="nav-icon">🎥</span> Film Room
+                </button>
+                <button class="nav-btn" data-target="gameday" id="gameday-nav-btn">
+                    <span class="nav-icon">🏟️</span> Next Game
+                </button>
+            </nav>
+            <div class="sidebar-footer">
+                <div class="team-badge" id="sidebar-team-badge">
+                    <div class="badge-color" style="background-color: var(--primary);"></div>
+                    <span id="sidebar-team-name">Saints</span>
+                </div>
+                <div class="week-display">
+                    Week <span id="sidebar-week-number">1</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <!-- HEADER -->
+            <header class="main-header">
+                <div class="header-left">
+                    <h2 id="page-title">Head Coach Dashboard</h2>
+                    <p id="page-subtitle" class="text-muted">Manage your franchise, set playbooks, and check scouting reports.</p>
+                </div>
+                <div class="header-right">
+                    <div class="budget-card">
+                        <span class="budget-label">Team Budget</span>
+                        <span class="budget-value" id="budget-display">$5,000,000</span>
+                    </div>
+                </div>
+            </header>
+
+            <!-- SCREENS -->
+            <div class="screen-container">
+                <!-- 1. DASHBOARD SCREEN -->
+                <section class="screen active" id="screen-dashboard">
+                    <div class="grid-2col">
+                        <!-- Left Block: Welcome, Opponent & Team Chemistry -->
+                        <div class="flex-column">
+                            <div class="card welcome-card">
+                                <div class="welcome-overlay"></div>
+                                <div class="welcome-content">
+                                    <h3>Welcome Back, Coach!</h3>
+                                    <p>Your team, the <strong id="dash-team-name">Saints</strong>, is currently preparing for <strong id="dash-matchup-title">Week 1 vs Patriots</strong>.</p>
+                                    <div class="record-badge">Record: <span id="dash-record">0 - 0</span></div>
+                                </div>
+                            </div>
+
+                            <!-- Team Chemistry Panel -->
+                            <div class="card chemistry-card" id="dashboard-chemistry-card">
+                                <div class="card-header">
+                                    <h4>Team Chemistry & Synergy</h4>
+                                    <span class="badge badge-accent" id="chemistry-overall-badge">OVR 0%</span>
+                                </div>
+                                <div class="card-body">
+                                    <div class="chem-row">
+                                        <div class="chem-label-group">
+                                            <span>Offense Synergy</span>
+                                            <span class="chem-style-badge" id="chem-style-off">...</span>
+                                        </div>
+                                        <div class="progress-container">
+                                            <div class="progress-bar" id="chem-bar-off" style="width: 0%; background-color: var(--accent);"></div>
+                                        </div>
+                                    </div>
+                                    <div class="chem-row margin-top">
+                                        <div class="chem-label-group">
+                                            <span>Defense Synergy</span>
+                                            <span class="chem-style-badge" id="chem-style-def">...</span>
+                                        </div>
+                                        <div class="progress-container">
+                                            <div class="progress-bar" id="chem-bar-def" style="width: 0%; background-color: var(--primary);"></div>
+                                        </div>
+                                    </div>
+                                    <div class="chem-row margin-top">
+                                        <div class="chem-label-group">
+                                            <span>Special Teams Synergy</span>
+                                            <span class="chem-style-badge" id="chem-style-st">...</span>
+                                        </div>
+                                        <div class="progress-container">
+                                            <div class="progress-bar" id="chem-bar-st" style="width: 0%; background-color: var(--warning);"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card opponent-card">
+                                <div class="card-header">
+                                    <h4>Next Opponent</h4>
+                                    <span class="badge badge-danger" id="opp-rating-badge">OVR 78</span>
+                                </div>
+                                <div class="card-body">
+                                    <div class="opp-info">
+                                        <div class="opp-avatar" id="opp-avatar">🏈</div>
+                                        <div class="opp-details">
+                                            <h5 id="opp-team-name">New England Patriots</h5>
+                                            <p class="text-muted" id="opp-style-text">Style: Balanced Pro Style</p>
+                                        </div>
+                                    </div>
+                                    <div class="stat-bars">
+                                        <div class="stat-bar-group">
+                                            <span class="stat-label">Offensive Power</span>
+                                            <div class="progress-container">
+                                                <div class="progress-bar" id="opp-offense-bar" style="width: 78%"></div>
+                                            </div>
+                                        </div>
+                                        <div class="stat-bar-group">
+                                            <span class="stat-label">Defensive Power</span>
+                                            <div class="progress-container">
+                                                <div class="progress-bar" id="opp-defense-bar" style="width: 75%"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <blockquote class="scouting-report" id="scouting-text">
+                                        "They run a tactical Pro Style offense with Charlie Weis schemes. Defensively, they rely on sound 3-4 zones. Attack the seam passes."
+                                    </blockquote>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Right Block: Playbooks & Progress -->
+                        <div class="flex-column">
+                            <div class="card playbook-selection-card">
+                                <div class="card-header">
+                                    <h4>Playbook & Gameplan</h4>
+                                </div>
+                                <div class="card-body">
+                                    <div class="input-group">
+                                        <label for="offense-scheme-select">Offensive Scheme</label>
+                                        <select id="offense-scheme-select">
+                                            <option value="Pro Style">Pro Style (Balanced)</option>
+                                            <option value="Spread">Spread (Air Attack)</option>
+                                            <option value="West Coast">West Coast (Quick Rhythm)</option>
+                                        </select>
+                                    </div>
+                                    <div class="input-group">
+                                        <label for="defense-scheme-select">Defensive Scheme</label>
+                                        <select id="defense-scheme-select">
+                                            <option value="46 Defense">46 Defense (Aggressive Blitz)</option>
+                                            <option value="Tampa 2">Tampa 2 (Zone Coverage)</option>
+                                            <option value="Legion of Boom">Legion of Boom (Press Man)</option>
+                                        </select>
+                                    </div>
+                                    <div class="playbook-preview" id="playbook-preview-box">
+                                        <div style="margin-bottom: 12px;">
+                                            <h5 id="offense-scheme-title" style="margin: 0 0 4px 0; color: #fff; font-size: 13px; font-weight: 700;">Offensive Scheme: Pro Style</h5>
+                                            <span id="offense-scheme-bonus" class="text-green-500" style="font-weight: 700; font-size: 12px; color: #4ade80;">+5% Pass Accuracy</span>
+                                            <p id="offense-scheme-desc" style="margin: 4px 0 0 0; font-size: 11px; color: var(--text-muted); line-height: 1.4;">Focuses on balanced short-to-intermediate passing concepts and inside zone runs.</p>
+                                        </div>
+                                        <div style="border-top: 1px solid var(--border-color); padding-top: 10px;">
+                                            <h5 id="defense-scheme-title" style="margin: 0 0 4px 0; color: #fff; font-size: 13px; font-weight: 700;">Defensive Scheme: 46 Defense</h5>
+                                            <span id="defense-scheme-bonus" class="text-green-500" style="font-weight: 700; font-size: 12px; color: #facc15;">+8% Pass Rush / Blitz</span>
+                                            <p id="defense-scheme-desc" style="margin: 4px 0 0 0; font-size: 11px; color: var(--text-muted); line-height: 1.4;">Aggressive 8-in-the-box front designed to stop the run and overwhelm offensive lines.</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card week-progress-card">
+                                <div class="card-header">
+                                    <h4>Weekly Schedule</h4>
+                                </div>
+                                <div class="card-body">
+                                    <ul class="schedule-list" id="schedule-list">
+                                        <li class="completed"><span>Monday</span><span>Team Meeting & Planning</span></li>
+                                        <li class="active-day"><span>Tuesday - Saturday</span><span>Practice & Film Study</span></li>
+                                        <li><span>Sunday</span><span>Game Day!</span></li>
+                                    </ul>
+                                    <button class="btn btn-primary btn-full margin-top" id="go-to-practice-btn">Go to Practice Field 🏃</button>
+                                    <button class="btn btn-secondary btn-full margin-top" id="auto-sim-practice-btn">Auto-Simulate Practice ⚡</button>
+                                    <button class="btn btn-accent btn-full margin-top" id="go-to-gameday-btn" style="display: none;">Start Game Day 🏈</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 2. PRACTICE SCREEN -->
+                <section class="screen" id="screen-practice">
+                    <div class="grid-2col-wide">
+                        <div class="card">
+                            <div class="card-header">
+                                <h4>Weekly Training Sessions</h4>
+                                <span class="text-muted" id="practice-days-left">Days remaining: 5</span>
+                            </div>
+                            <div class="card-body">
+                                <p class="margin-bottom">Select a training focus for today's practice session. Hired specialist coaches provide boost modifiers to players' growth.</p>
+                                
+                                <div class="training-options-grid">
+                                    <!-- Option 1 -->
+                                    <div class="training-option-card active" data-type="tactics">
+                                        <div class="option-icon">🏈</div>
+                                        <h5>Tactical Drill</h5>
+                                        <p>Builds quarterback and defender positioning, play recognition, and accuracy.</p>
+                                        <span class="growth-indicators">+Awareness, +Pass Acc, +Tackle</span>
+                                    </div>
+                                    <!-- Option 2 -->
+                                    <div class="training-option-card" data-type="conditioning">
+                                        <div class="option-icon">⚡</div>
+                                        <h5>Strength & Conditioning</h5>
+                                        <p>Focuses on pure physical attributes, agility, speed, and linesman blocking power.</p>
+                                        <span class="growth-indicators">+Speed, +Accel, +Strength</span>
+                                    </div>
+                                    <!-- Option 3 -->
+                                    <div class="training-option-card" data-type="film">
+                                        <div class="option-icon">🍿</div>
+                                        <h5>Film Room Session</h5>
+                                        <p>Watch historical plays, study opponents, and improve receiver and defensive back awareness.</p>
+                                        <span class="growth-indicators">+Awareness, +Catching, +Morale</span>
+                                    </div>
+                                </div>
+
+                                <div class="training-execution-box margin-top" style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                                    <button class="btn btn-accent btn-large" id="run-drill-btn">Run Training Drill ⏱️</button>
+                                    <button class="btn btn-secondary btn-large" id="auto-sim-drill-btn">Auto-Simulate Practice ⚡</button>
+                                    <div class="drill-progress-bar-container" style="display: none; flex: 1; min-width: 200px;">
+                                        <div class="drill-progress-bar"></div>
+                                        <span class="drill-progress-text">Blowing whistles, coaches shouting...</span>
+                                    </div>
+                                </div>
+
+                                <div class="drill-results" id="drill-results-log">
+                                    <!-- Drills results will populate here -->
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Mini Roster view to check growth -->
+                        <div class="card">
+                            <div class="card-header">
+                                <h4>Player Fatigue & Growth</h4>
+                            </div>
+                            <div class="card-body max-height-scroll">
+                                <ul class="roster-growth-list" id="roster-growth-list">
+                                    <!-- Filled dynamically -->
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 3. TEAM ROSTER SCREEN -->
+                <section class="screen" id="screen-roster">
+                    <div class="card">
+                        <div class="card-header flex-row">
+                            <h4>Active Starters (First 11 Offense, 11 Defense, 1 Kicker)</h4>
+                            <div class="roster-stats" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+                                <span class="badge badge-accent">Average Starter OVR: <span id="roster-avg-ovr">80</span></span>
+                                <button id="best-lineup-btn" class="btn btn-primary" style="padding:6px 14px;font-size:0.82rem;display:flex;align-items:center;gap:6px;">
+                                    ⚡ Best Lineup
+                                </button>
+                            </div>
+                        </div>
+                        <div class="card-body scroll-horizontal">
+                            <table class="roster-table" id="roster-starters-table">
+                                <thead>
+                                    <tr>
+                                        <th>Name</th>
+                                        <th>Pos</th>
+                                        <th>Status</th>
+                                        <th>Style Preference</th>
+                                        <th>OVR</th>
+                                        <th>Speed</th>
+                                        <th>Accel</th>
+                                        <th>Catch</th>
+                                        <th>Throw Pwr</th>
+                                        <th>Pass Acc</th>
+                                        <th>Tackle</th>
+                                        <th>Strength</th>
+                                        <th>Awareness</th>
+                                        <th>Fatigue</th>
+                                        <th>Morale</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="starters-table-body">
+                                    <!-- Starters filled dynamically -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="card margin-top">
+                        <div class="card-header flex-row">
+                            <h4>Bench & Backups</h4>
+                        </div>
+                        <div class="card-body scroll-horizontal">
+                            <table class="roster-table" id="roster-bench-table">
+                                <thead>
+                                    <tr>
+                                        <th>Name</th>
+                                        <th>Pos</th>
+                                        <th>Status</th>
+                                        <th>Style Preference</th>
+                                        <th>OVR</th>
+                                        <th>Speed</th>
+                                        <th>Accel</th>
+                                        <th>Catch</th>
+                                        <th>Throw Pwr</th>
+                                        <th>Pass Acc</th>
+                                        <th>Tackle</th>
+                                        <th>Strength</th>
+                                        <th>Awareness</th>
+                                        <th>Fatigue</th>
+                                        <th>Morale</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="bench-table-body">
+                                    <!-- Bench filled dynamically -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 4. LEAGUE STANDINGS SCREEN -->
+                <section class="screen" id="screen-standings">
+                    <div class="standings-header">
+                        <h2>DIVISION STANDINGS</h2>
+                    </div>
+                    <div class="standings-container">
+                        <!-- AFC Side -->
+                        <div class="conference-col" id="afc-col">
+                            <h3 class="conf-title afc-title">AFC</h3>
+                            <div class="divisions-grid" id="afc-divisions">
+                                <!-- Dynamically populated by JS -->
+                            </div>
+                        </div>
+                        
+                        <!-- NFC Side -->
+                        <div class="conference-col" id="nfc-col">
+                            <h3 class="conf-title nfc-title">NFC</h3>
+                            <div class="divisions-grid" id="nfc-divisions">
+                                <!-- Dynamically populated by JS -->
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 5. STAT LEADERS SCREEN -->
+                <section class="screen" id="screen-stats">
+                    <div class="stats-header">
+                        <h2>🎮 STAT LEADERS</h2>
+                    </div>
+                    <div class="stats-grid" id="stats-grid">
+                        <!-- Populated dynamically by stats.js -->
+                    </div>
+                </section>
+
+                <!-- 3.5 TRADE SCREEN -->
+                <section class="screen" id="screen-trade">
+                    <div class="grid-2col-wide">
+                        <!-- Propose Trade Card -->
+                        <div class="card">
+                            <div class="card-header">
+                                <h4>Propose Trade</h4>
+                            </div>
+                            <div class="card-body">
+                                <div class="input-group">
+                                    <label for="trade-team-select">Select Target Team</label>
+                                    <select id="trade-team-select">
+                                        <!-- Populated dynamically -->
+                                    </select>
+                                </div>
+                                <div class="trade-selectors-grid margin-top">
+                                    <div class="trade-box">
+                                        <h5>My Player (You Give)</h5>
+                                        <select id="trade-my-player-select" class="trade-select-player">
+                                            <option value="">-- Select Player --</option>
+                                        </select>
+                                        <div class="trade-player-card" id="trade-my-player-card">
+                                            <span class="italic text-muted">Select a player to offer...</span>
+                                        </div>
+                                    </div>
+                                    <div class="trade-vs-icon">🔄</div>
+                                    <div class="trade-box">
+                                        <h5>Target Player (You Get)</h5>
+                                        <select id="trade-opp-player-select" class="trade-select-player">
+                                            <option value="">-- Select Player --</option>
+                                        </select>
+                                        <div class="trade-player-card" id="trade-opp-player-card">
+                                            <span class="italic text-muted">Select an opponent player...</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="trade-valuation-indicator margin-top text-center" style="background: rgba(0,0,0,0.2); padding: 12px; border-radius: var(--radius-md); border:1px solid var(--border-color); margin-bottom: 12px;">
+                                    <span style="font-size:12px; color:var(--text-muted);">GM Estimated Interest Score (-10 to +10):</span>
+                                    <strong id="trade-interest-badge" style="color:var(--accent); font-size:15px; margin-left:8px;">0 (Neutral)</strong>
+                                </div>
+                                <button class="btn btn-accent btn-full btn-large" id="propose-trade-btn">Send Trade Proposal 🤝</button>
+                            </div>
+                        </div>
+
+                        <!-- Trade Inbox -->
+                        <div class="card">
+                            <div class="card-header">
+                                <h4>Trade Activity & Inbox</h4>
+                            </div>
+                            <div class="card-body">
+                                <h5>Active Proposals</h5>
+                                <div id="trade-inbox-list" class="flex-column" style="gap:12px;">
+                                    <p class="text-muted italic">No incoming trade offers this week.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 4. STAFF & SIGNINGS SCREEN -->
+                <section class="screen" id="screen-coaches">
+                    <div class="grid-2col-wide">
+                        <!-- Hired Coaches -->
+                        <div class="card">
+                            <div class="card-header">
+                                <h4>Current Coaching Staff</h4>
+                            </div>
+                            <div class="card-body">
+                                <div class="staff-grid" id="staff-grid">
+                                    <!-- Filled dynamically -->
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Marketplace -->
+                        <div class="flex-column" style="gap: 20px;">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4>Coach Marketplace</h4>
+                                </div>
+                                <div class="card-body max-height-scroll" style="max-height: 280px;">
+                                    <div class="marketplace-list" id="marketplace-list">
+                                        <!-- Filled dynamically -->
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Free Agents -->
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4>Free Agent Players</h4>
+                                </div>
+                                <div class="card-body max-height-scroll" style="max-height: 280px;">
+                                    <div class="free-agents-list" id="free-agents-list">
+                                        <!-- Filled dynamically -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 5. FILM ROOM SCREEN -->
+                <section class="screen" id="screen-filmroom">
+                    <div class="grid-filmroom">
+                        <!-- Playback Board -->
+                        <div class="card flex-column flex-grow">
+                            <div class="card-header flex-row">
+                                <h4>Interactive Chalkboard Replay</h4>
+                                <div class="film-selectors">
+                                    <select id="film-play-select">
+                                        <option value="">-- Select Play to Load --</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="card-body film-canvas-wrapper">
+                                <canvas id="film-canvas" width="800" height="450"></canvas>
+                                <div class="film-controls">
+                                    <button class="btn btn-secondary btn-icon" id="film-play-btn" disabled>▶ Play</button>
+                                    <button class="btn btn-secondary btn-icon" id="film-pause-btn" style="display:none;">⏸ Pause</button>
+                                    <button class="btn btn-secondary btn-icon" id="film-reset-btn" disabled>🔄 Reset</button>
+                                    <div class="film-scrubber-group">
+                                        <input type="range" id="film-scrubber" min="0" max="100" value="0" disabled>
+                                        <span class="film-time" id="film-time-display">0.0s / 0.0s</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Drawing & Analysis Tools -->
+                        <div class="card">
+                            <div class="card-header">
+                                <h4>Coaching Marker Tools</h4>
+                            </div>
+                            <div class="card-body flex-column">
+                                <div class="tool-section">
+                                    <h5>Drawing Tools</h5>
+                                    <div class="brush-colors">
+                                        <button class="color-dot active" style="background-color: var(--chalk-yellow);" data-color="#f59e0b"></button>
+                                        <button class="color-dot" style="background-color: var(--chalk-red);" data-color="#ef4444"></button>
+                                        <button class="color-dot" style="background-color: var(--chalk-blue);" data-color="#3b82f6"></button>
+                                        <button class="color-dot" style="background-color: var(--chalk-white);" data-color="#ffffff"></button>
+                                    </div>
+                                    <div class="brush-sizes margin-top">
+                                        <button class="brush-size-btn active" data-size="3">Thin</button>
+                                        <button class="brush-size-btn" data-size="6">Medium</button>
+                                        <button class="brush-size-btn" data-size="12">Thick</button>
+                                    </div>
+                                    <div class="action-buttons margin-top">
+                                        <button class="btn btn-secondary btn-full" id="film-clear-chalk">Erase Board 🧼</button>
+                                    </div>
+                                </div>
+                                <div class="analysis-box margin-top">
+                                    <h5>Play Analytics</h5>
+                                    <div id="film-analytics-details">
+                                        <p class="text-muted text-center italic">Load a play to view analytics.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 6. GAME DAY SCREEN (LEGACY - NOW HANDLED BY GAMEDAY.HTML) -->
+                <section class="screen" id="screen-gameday" style="display: none !important;">
+                    <!-- Overlay loading/ready screen -->
+                    <div id="gameday-ready-overlay" class="overlay-modal" style="display: none; z-index: 2000;">
+                        <div class="card modal-content text-center">
+                            <h3>WEEKLY WRAP-UP COMPLETE</h3>
+                            <p>It's Sunday, Game Day! Are you ready to lead your team against the <strong id="gameday-opp-name">Patriots</strong>?</p>
+                            <div class="matchup-vs">
+                                <span class="team-vs-badge my-team" id="ready-my-team-name">Saints</span>
+                                <span class="vs-text">VS</span>
+                                <span class="team-vs-badge opp-team" id="ready-opp-team-name">Patriots</span>
+                            </div>
+                            <button class="btn btn-accent btn-large" id="kickoff-match-btn">Kickoff Match! 🏈</button>
+                        </div>
+                    </div>
+
+                    <div class="gameday-layout">
+                        <!-- Visual Field and Scoreboard -->
+                        <div class="gameday-main-column" style="position: relative;">
+                            <!-- Floating PiP Playbook Overlay -->
+                            <div id="pip-playbook-overlay" class="pip-overlay" style="display: none;">
+                                <div class="pip-header flex-row">
+                                    <h5 id="pip-title">Play-Call & Sim Console</h5>
+                                    <button class="btn btn-icon pip-close-btn" id="pip-toggle-btn">_</button>
+                                </div>
+                                <div class="pip-body scroll-vertical" id="pip-body">
+                                    <!-- Simulation Controls -->
+                                    <div class="pip-sim-controls" style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 16px;">
+                                        <button class="btn btn-primary" style="font-size: 11px; padding: 6px;" id="sim-play-btn">Sim Play ⏱️</button>
+                                        <button class="btn btn-secondary" style="font-size: 11px; padding: 6px;" id="sim-drive-btn">Sim Drive ⏩</button>
+                                        <button class="btn btn-accent" style="font-size: 11px; padding: 6px;" id="sim-game-btn">Sim Game ⏭️</button>
+                                    </div>
+                                    
+                                    <!-- Play Call Delegation select -->
+                                    <div class="input-group" style="margin-bottom: 12px;">
+                                        <label for="pip-delegation-select">Play-Calling Mode</label>
+                                        <select id="pip-delegation-select">
+                                            <option value="manual">Full Control (Manual Both)</option>
+                                            <option value="delegate_offense">Delegate Offense (Auto OC)</option>
+                                            <option value="delegate_defense">Delegate Defense (Auto DC)</option>
+                                            <option value="spectate">Spectate (Auto Both)</option>
+                                        </select>
+                                    </div>
+
+
+                                    
+                                    <div id="pip-play-simulating-menu" style="display: none;" class="text-center pad-top">
+                                        <div class="sim-pulse">🏈</div>
+                                        <p class="sim-status-label" id="pip-sim-status-text">Play in progress...</p>
+                                        <button class="btn btn-secondary margin-top" id="pip-sim-speed-btn">Fast Forward (1x)</button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Scoreboard -->
+                            <div class="scoreboard-bar">
+                                <div class="team-score-block">
+                                    <div class="team-indicator my-team-bg"></div>
+                                    <span class="score-team-name" id="score-my-team">SAINTS</span>
+                                    <span class="score-points" id="score-my-points">0</span>
+                                </div>
+                                <div class="game-status-block">
+                                    <div class="lcd-text" id="scoreboard-down-dist">1ST & 10</div>
+                                    <div class="lcd-text" id="scoreboard-ball-on">OWN 20</div>
+                                    <div class="lcd-text" id="scoreboard-clock">15:00</div>
+                                    <div class="lcd-text" id="scoreboard-quarter">Q1</div>
+                                </div>
+                                <div class="team-score-block reverse">
+                                    <div class="team-indicator opp-team-bg"></div>
+                                    <span class="score-points" id="score-opp-points">0</span>
+                                    <span class="score-team-name" id="score-opp-name">PATRIOTS</span>
+                                </div>
+                            </div>
+
+                            <!-- 3D WebGL Match Field -->
+                            <div class="game-canvas-wrapper" style="position: relative;">
+                                <div id="game-container" style="width:100%;height:100%;position:relative;"></div>
+                                <!-- Field display indicators -->
+                                <div class="play-state-indicator" id="play-state-badge" style="display: none;">OFFENSE CALLS PLAY</div>
+                                
+                                <!-- Playbook Modal Overlay -->
+                                <div class="playbook-overlay" id="playbook-modal" style="display:none;">
+                                  <div class="playbook-container">
+                                    <div class="playbook-header">
+                                      <div class="header-info">
+                                        <span class="down-dist" id="pb-down-dist">1ST & 10</span>
+                                        <span class="personnel-tag">PERSONNEL: 11 (1 RB, 1 TE, 3 WR)</span>
+                                      </div>
+                                      <div class="header-actions">
+                                        <button id="btn-flip-play" class="pb-btn"><i class="icon-flip"></i> FLIP PLAY</button>
+                                      </div>
+                                    </div>
+
+                                    <!-- Play Category Navigation Tabs -->
+                                    <div class="playbook-tabs">
+                                      <button class="pb-tab active" data-category="RUN">RUN</button>
+                                      <button class="pb-tab" data-category="SHORT_PASS">SHORT PASS</button>
+                                      <button class="pb-tab" data-category="DEEP_PASS">DEEP PASS</button>
+                                      <button class="pb-tab" data-category="PA_PASS">PA PASS</button>
+                                      <button class="pb-tab" data-category="SPECIAL TEAMS">SPECIAL TEAMS</button>
+                                    </div>
+
+                                    <!-- 2x3 Play Cards Grid -->
+                                    <div class="play-grid" id="play-grid">
+                                      <!-- Play cards dynamically injected via JS -->
+                                    </div>
+
+                                  </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Real-time commentary banner -->
+                            <div class="ticker-box">
+                                <div class="ticker-title">LIVE TICKER</div>
+                                <div class="ticker-text" id="ticker-text-display">Welcome to Sunday football! Kickoff incoming...</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Post-game Modal -->
+                    <div id="gameday-recap-overlay" class="overlay-modal" style="display: none;">
+                        <div class="card modal-content text-center">
+                            <h3 id="recap-title">MATCH DAY COMPLETED</h3>
+                            <div class="recap-score">
+                                <span class="score-label" id="recap-score-display">Saints 24 - 17 Patriots</span>
+                            </div>
+                            <div class="recap-stats-table">
+                                <div class="stat-row"><span>Total Yards</span><span id="recap-my-yards">350</span><span id="recap-opp-yards">280</span></div>
+                                <div class="stat-row"><span>Passing Yards</span><span id="recap-my-pass">220</span><span id="recap-opp-pass">190</span></div>
+                                <div class="stat-row"><span>Rushing Yards</span><span id="recap-my-rush">130</span><span id="recap-opp-rush">90</span></div>
+                                <div class="stat-row"><span>Turnovers</span><span id="recap-my-to">1</span><span id="recap-opp-to">2</span></div>
+                            </div>
+                            <button class="btn btn-accent btn-large margin-top" id="recap-return-btn">Return to Dashboard</button>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 5. FREE AGENTS MARKET SCREEN -->
+                <section class="screen" id="screen-freeagents">
+                    <div class="card">
+                        <div class="card-header flex-row" style="flex-wrap: wrap; gap: 15px; justify-content: space-between; align-items: center;">
+                            <h4>Free Agent Marketplace</h4>
+                            <div class="fa-filters" style="display: flex; gap: 10px; align-items: center;">
+                                <label for="fa-pos-filter" style="font-size: 12px; font-weight: 600;">Position:</label>
+                                <select id="fa-pos-filter" class="form-input" style="padding: 4px 10px; font-size: 12px; width: auto; background: var(--bg-dark); color: var(--text-color); border: 1px solid var(--border-color);">
+                                    <option value="ALL">All Positions</option>
+                                    <option value="QB">Quarterbacks (QB)</option>
+                                    <option value="RB">Running Backs (RB)</option>
+                                    <option value="WR">Wide Receivers (WR)</option>
+                                    <option value="OL">Offensive Linemen (OL)</option>
+                                    <option value="DL">Defensive Linemen (DL)</option>
+                                    <option value="LB">Linebackers (LB)</option>
+                                    <option value="DB">Defensive Backs (DB)</option>
+                                    <option value="K">Kickers (K)</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="card-body scroll-horizontal">
+                            <table class="roster-table" id="free-agents-table">
+                                <thead>
+                                    <tr>
+                                        <th>Name</th>
+                                        <th>Pos</th>
+                                        <th>Style Preference</th>
+                                        <th>OVR</th>
+                                        <th>Market Age</th>
+                                        <th>Speed</th>
+                                        <th>Accel</th>
+                                        <th>Catch</th>
+                                        <th>Tackle</th>
+                                        <th>Strength</th>
+                                        <th>Awareness</th>
+                                        <th>Salary / Year</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="free-agents-tbody">
+                                    <!-- Filled dynamically by main.js with pagination -->
+                                </tbody>
+                            </table>
+                            
+                            <!-- Pagination Controls -->
+                            <div class="pagination-container" style="display: flex; justify-content: space-between; align-items: center; margin-top: 15px; padding: 10px 0;">
+                                <span class="pagination-info" id="fa-pagination-info" style="font-size: 12px; color: var(--text-muted);">Showing 1-10 of 400 players</span>
+                                <div class="pagination-buttons" style="display: flex; gap: 8px;">
+                                    <button class="btn btn-secondary" id="fa-prev-btn" style="padding: 4px 10px; font-size: 12px;">Previous</button>
+                                    <button class="btn btn-secondary" id="fa-next-btn" style="padding: 4px 10px; font-size: 12px;">Next</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <!-- 1. Player Detail Modal -->
+    <div id="player-detail-modal" class="overlay-modal" style="display: none; z-index: 1000;">
+        <div class="card modal-content" style="max-width: 520px; width: 90%;">
+            <div class="card-header flex-row">
+                <h4 id="player-modal-name">Player Details</h4>
+                <button class="btn btn-secondary btn-icon" id="player-modal-close" style="padding: 4px 8px;">✕</button>
+            </div>
+            <div class="card-body">
+                <div class="player-modal-profile" style="display:flex; align-items:center; gap:16px; margin-bottom: 20px;">
+                    <div style="font-size: 32px; background: rgba(255,255,255,0.05); padding:10px; border-radius:50%;">🏈</div>
+                    <div>
+                        <h4 id="player-modal-pos-name" style="margin:0; font-size:16px; font-weight:700;">QB John Smith</h4>
+                        <p class="text-muted" id="player-modal-status-style" style="margin:4px 0 0 0; font-size:12px;">Starter | West Coast</p>
+                    </div>
+                </div>
+                
+                <!-- Upgrades Section -->
+                <div class="player-modal-section" style="border: 1px solid var(--border-color); border-radius: var(--radius-md); padding:16px; background:rgba(0,0,0,0.15);">
+                    <h5 style="margin:0 0 12px 0; font-size:13px; font-weight:700;">UPGRADE ATTRIBUTES (SP: <span id="player-modal-sp" style="color:var(--accent); font-weight:800;">0</span>)</h5>
+                    <div class="upgrade-grid" id="player-modal-upgrades" style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+                        <!-- Filled dynamically -->
+                    </div>
+                </div>
+                
+                <!-- Contract Section -->
+                <div class="player-modal-section margin-top" style="border: 1px solid var(--border-color); border-radius: var(--radius-md); padding:16px; background:rgba(0,0,0,0.15);">
+                    <h5 style="margin:0 0 12px 0; font-size:13px; font-weight:700;">CONTRACT & SALARY</h5>
+                    <div class="flex-row" style="justify-content: space-between; align-items: center; margin-bottom: 12px; font-size:12px;">
+                        <span>Current Salary: <strong id="player-modal-salary" style="color:var(--text-highlight);">$300,000</strong></span>
+                        <span>Extension Cost: <strong id="player-modal-demand" style="color:var(--accent);">$450,000</strong></span>
+                    </div>
+                    <button class="btn btn-primary btn-full" id="player-modal-extend-btn">Extend Contract (1 Year)</button>
+                </div>
+                
+                <div class="player-modal-section margin-top" style="display: flex; gap: 10px;">
+                    <button class="btn btn-accent btn-full" id="player-modal-starter-btn" style="flex: 1;">Set as Starter 🏈</button>
+                    <button class="btn btn-danger btn-full" id="player-modal-cut-btn" style="flex: 1;">Release / Cut Player ❌</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. Incoming CPU Trade Offer Modal -->
+    <div id="cpu-trade-modal" class="overlay-modal" style="display: none; z-index: 1001;">
+        <div class="card modal-content text-center" style="max-width: 480px; width: 90%;">
+            <h3 style="color:var(--accent);">INCOMING TRADE PROPOSAL! 📩</h3>
+            <p style="font-size:13px;"><strong id="cpu-trade-team-name">Patriots</strong> have sent you a trade offer:</p>
+            
+            <div class="matchup-vs margin-top" style="display:flex; justify-content:space-between; align-items:center; background:rgba(0,0,0,0.2); padding:16px; border-radius:var(--radius-md); border:1px solid var(--border-color);">
+                <div class="trade-side" style="flex:1;">
+                    <span style="font-size:10px; color:var(--text-muted); display:block; margin-bottom:4px;">YOU GET:</span>
+                    <h4 id="cpu-trade-get-player" style="margin:0; font-size:14px;">Tom Brady</h4>
+                    <span id="cpu-trade-get-ovr" class="badge badge-accent" style="margin-top:6px; display:inline-block;">OVR 85</span>
+                </div>
+                <div class="trade-vs-icon" style="font-size:20px; font-weight:700;">🔄</div>
+                <div class="trade-side" style="flex:1;">
+                    <span style="font-size:10px; color:var(--text-muted); display:block; margin-bottom:4px;">YOU GIVE:</span>
+                    <h4 id="cpu-trade-give-player" style="margin:0; font-size:14px;">backup</h4>
+                    <span id="cpu-trade-give-ovr" class="badge badge-primary" style="margin-top:6px; display:inline-block;">OVR 78</span>
+                </div>
+            </div>
+            
+            <div class="grid-2col margin-top">
+                <button class="btn btn-accent" id="cpu-trade-accept-btn">Accept Trade 🤝</button>
+                <button class="btn btn-secondary" id="cpu-trade-decline-btn">Decline Offer ❌</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Practice Simulation Choice Modal -->
+    <div id="practice-sim-modal" class="overlay-modal" style="display: none; z-index: 1100;">
+        <div class="card modal-content text-center" style="max-width: 420px; width: 90%; background: var(--bg-card); border: 1px solid var(--border-color); padding: 24px; border-radius: var(--radius-lg); box-shadow: var(--shadow-lg);">
+            <h3 style="color:var(--accent); margin-bottom: 8px;">Simulate Weekly Practice ⏱️</h3>
+            <p class="text-muted" style="font-size: 13px; margin-bottom: 20px;">Choose how far you want to simulate this week's practice sessions. Do you want to advance to Thursday, Saturday, or complete the entire week?</p>
+            <div style="display: flex; flex-direction: column; gap: 10px;">
+                <button class="btn btn-primary btn-full" id="sim-to-thurs-btn" style="padding: 10px;">Simulate to Thursday (2 Days)</button>
+                <button class="btn btn-accent btn-full" id="sim-to-sat-btn" style="padding: 10px;">Simulate to Saturday (4 Days)</button>
+                <button class="btn btn-secondary btn-full" id="sim-full-week-btn" style="padding: 10px;">Simulate Full Week (All Days)</button>
+                <button class="btn btn-danger btn-full margin-top" id="sim-cancel-btn" style="padding: 10px;">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+
+
+    <!-- JS MODULES -->
+    <script type="module" src="./js/dashboard.js?v=2"></script>
+    <script type="module" src="./js/app.js?v=2"></script>
+</body>
+</html>

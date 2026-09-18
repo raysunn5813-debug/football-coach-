@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>ThreeRenderer preview harness</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <style>
+    html, body { margin: 0; background: #060d1a; overflow: hidden; }
+    #game-container { width: 1600px; height: 900px; position: relative; }
+    #err { position: fixed; top: 0; left: 0; color: #f88; font: 12px monospace;
+           background: #000c; padding: 6px; z-index: 99; white-space: pre-wrap; }
+  </style>
+</head>
+<body>
+  <div id="game-container"></div>
+  <div id="err"></div>
+  <script type="module">
+    const log = m => { document.getElementById('err').textContent += m + '\n'; };
+    window.onerror = (m, s, l) => log(`ERROR ${m} @${l}`);
+
+    import { ThreeRenderer } from './js/renderers/ThreeRenderer.js';
+
+    const q = new URLSearchParams(location.search);
+    const mode = q.get('cam') || 'broadcast';
+    const MAX_FRAMES = Number(q.get('frames') || 400);
+    const r = new ThreeRenderer('game-container', {
+      cameraMode: mode,
+      turfResolution: Number(q.get('turf') || 4096),
+    });
+    window.__r = r;
+
+    const LOS = 44;
+    const OFF = [
+      ['LT', -1, -4.5], ['LG', -1, -1.5], ['C', -1, 0], ['RG', -1, 1.5], ['RT', -1, 4.5],
+      ['TE', -1, 7.5], ['QB', -6, 0], ['RB', -7.5, -2.5],
+      ['W1', -1, -19], ['W2', -1, 20], ['W3', -2, -13],
+    ];
+    const DEF = [
+      ['DE', 1.5, -5], ['DT', 1.5, -1.6], ['DT', 1.5, 1.6], ['DE', 1.5, 5],
+      ['WLB', 5, -5], ['MLB', 5.5, 0], ['SLB', 5, 5.5],
+      ['CB', 7, -19], ['CB', 7, 20], ['FS', 14, -4], ['SS', 11, 7],
+    ];
+    let id = 0;
+    const players = [
+      ...OFF.map(([role, dx, dz]) => ({ id: id++, role, team: 'offense',
+        x: LOS + dx, y: 26.65 + dz, vx: 0, vy: 0 })),
+      ...DEF.map(([role, dx, dz]) => ({ id: id++, role, team: 'defense',
+        x: LOS + dx, y: 26.65 + dz, vx: 0, vy: 0 })),
+    ];
+
+    // Give everyone some motion so the run cycle is visible in the still.
+    const moving = q.get('run') === '1';
+    if (moving) {
+      players.forEach((p, i) => {
+        const dir = p.team === 'offense' ? 1 : -1;
+        p.vx = dir * (4 + (i % 5)); p.vy = ((i % 3) - 1) * 2.5;
+      });
+    }
+
+    const ball = { x: LOS - 6, y: 26.65, z: 0, vx: 1, vy: 0, state: 'held' };
+    const matchState = { yardLine: LOS, firstDownYardLine: LOS + 10 };
+
+    let frames = 0;
+    function loop() {
+      r.drawField(matchState, ball.x - 40);
+      r.drawPlayers(players, ball.x - 40, '#2f6fe8', '#d92b2b', players[6]);
+      r.drawBall(ball);
+      r.updateParticles(1 / 60);
+      r.drawParticles();
+      frames++;
+      if (frames === Math.min(4, MAX_FRAMES - 1)) r.addTackleBurst(LOS + 2, 24);
+      if (frames < MAX_FRAMES) requestAnimationFrame(loop);
+      else { window.__done = true; document.title = 'READY'; }
+    }
+    loop();
+  </script>
+</body>
+</html>

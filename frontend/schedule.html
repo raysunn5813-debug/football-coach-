@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chalkboard Football — Season Schedule</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #0f172a; color: #f8fafc; font-family: system-ui, sans-serif; }
+        .matchup-wrapper {
+            background: #1e293b; border-radius: 8px; border-left: 4px solid #3b82f6;
+            padding: 16px; transition: transform 0.15s ease, box-shadow 0.15s ease;
+        }
+        .matchup-wrapper:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.4); }
+        .conf1-border { border-left-color: #ef4444; }
+        .conf2-border { border-left-color: #3b82f6; }
+        .team-winner { color: #4ade80; font-weight: 800; }
+        .matchup-type { font-size: 10px; font-weight: 800; text-transform: uppercase; color: #94a3b8; }
+        .page-link { background: #1e293b; border-color: #334155; color: #94a3b8; }
+        .page-item.active .page-link { background: #2563eb; border-color: #2563eb; color: #fff; }
+    </style>
+</head>
+<body class="container py-4">
+
+    <!-- Header & Breadcrumbs -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <h1 id="round-header" class="h3 fw-bold mb-1">Regular Season · Week 1</h1>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-0">
+                    <li class="breadcrumb-item"><a href="/" class="text-info text-decoration-none">League</a></li>
+                    <li class="breadcrumb-item active text-secondary" id="season-tag">Season 2026</li>
+                </ol>
+            </nav>
+        </div>
+        <a href="/gameday.html" class="btn btn-primary fw-bold">🎮 Launch 3D Gameday</a>
+    </div>
+
+    <hr class="border-secondary">
+
+    <!-- Week Selector Pagination (W1 to W22) -->
+    <div class="mb-4">
+        <ul class="pagination pagination-sm d-flex flex-wrap gap-1" id="week-pagination">
+            <!-- Dynamically Rendered -->
+        </ul>
+    </div>
+
+    <!-- Matchups Grid -->
+    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-3" id="matchups-container">
+        <!-- Dynamically Rendered -->
+    </div>
+
+    <script>
+        let currentWeek = 1;
+
+        function renderPagination() {
+            const nav = document.getElementById('week-pagination');
+            nav.innerHTML = '';
+            for (let w = 1; w <= 22; w++) {
+                const li = document.createElement('li');
+                li.className = `page-item ${w === currentWeek ? 'active' : ''}`;
+                const label = w <= 18 ? `W${w}` : (w===19?'WC':w===20?'DIV':w===21?'CONF':'SB');
+                li.innerHTML = `<a class="page-link" href="#" onclick="loadWeek(${w}); return false;">${label}</a>`;
+                nav.appendChild(li);
+            }
+        }
+
+        async function loadWeek(weekNum) {
+            currentWeek = weekNum;
+            renderPagination();
+            
+            try {
+                const res = await fetch(`/api/schedule/week/${weekNum}`);
+                const data = await res.json();
+                
+                document.getElementById('round-header').textContent = `${data.round_name || 'Week ' + weekNum} · ${data.date || ''}`;
+                
+                const container = document.getElementById('matchups-container');
+                container.innerHTML = '';
+
+                (data.matchups || []).forEach(m => {
+                    const card = document.createElement('div');
+                    card.className = 'col';
+                    card.innerHTML = `
+                        <div class="matchup-wrapper ${m.is_divisional ? 'conf1-border' : 'conf2-border'}">
+                            <div class="d-flex justify-content-between">
+                                <span class="matchup-type">${m.is_divisional ? 'Divisional' : 'Non-Conference'}</span>
+                                <span class="badge bg-secondary" style="font-size: 9px;">${m.date}</span>
+                            </div>
+                            <div class="h4 fw-bold my-2 d-flex justify-content-between">
+                                <span>${m.away_team} <small class="fs-6 text-muted">(${m.away_record})</small></span>
+                                <span class="text-muted">@</span>
+                                <span>${m.home_team} <small class="fs-6 text-muted">(${m.home_record})</small></span>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center mt-3 pt-2 border-top border-secondary">
+                                <span class="text-info small fw-semibold">${m.is_completed ? `${m.away_score} - ${m.home_score}` : 'Scheduled'}</span>
+                                <a href="/gameday.html?match=${m.id}&away=${m.away_team}&home=${m.home_team}" class="btn btn-sm btn-outline-light">Play Match 🏈</a>
+                            </div>
+                        </div>
+                    `;
+                    container.appendChild(card);
+                });
+            } catch (err) {
+                console.error("Failed to load schedule week:", err);
+            }
+        }
+
+        // Initial Load
+        loadWeek(1);
+    </script>
+</body>
+</html>

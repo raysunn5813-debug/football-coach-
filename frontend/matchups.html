@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Matchups | Chalkboard Football</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #0f172a; color: #f8fafc; font-family: system-ui, sans-serif; }
+        .matchup-wrapper {
+            background: #1e293b; border-radius: 8px; padding: 16px; margin-bottom: 12px;
+            transition: transform 0.15s ease;
+        }
+        .matchup-wrapper:hover { transform: translateY(-2px); }
+        .conf1-border { border-left: 4px solid #ef4444; }
+        .conf2-border { border-left: 4px solid #3b82f6; }
+        .matchup-type { font-size: 11px; font-weight: 800; text-transform: uppercase; color: #94a3b8; }
+        .team-winner { color: #4ade80; font-weight: bold; }
+        .matchup-record { font-size: 12px; color: #cbd5e1; }
+        .page-link { background: #1e293b; border-color: #334155; color: #94a3b8; }
+        .page-item.active .page-link { background: #2563eb; color: #fff; border-color: #2563eb; }
+        a { text-decoration: none; color: inherit; }
+        .team-filter-select {
+            background-color: #1e293b; color: #f8fafc; border: 1px solid #334155;
+            padding: 5px 10px; border-radius: 5px; outline: none;
+        }
+    </style>
+</head>
+<body class="container py-4">
+
+    <!-- Dynamic Header & Team Switcher -->
+    <div id="header-container" class="d-flex justify-content-between align-items-center">
+        <div>
+            <h1 id="week-title">Loading...</h1>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-0">
+                    <li class="breadcrumb-item"><a href="/" class="text-info">Leagues</a></li>
+                    <li class="breadcrumb-item active text-secondary" aria-current="page">Matchups</li>
+                </ol>
+            </nav>
+        </div>
+        
+        <!-- Dropdown Filter for Specific Teams -->
+        <div>
+            <label for="teamFilter" class="me-2 fw-bold text-secondary">Filter by Team:</label>
+            <select id="teamFilter" class="team-filter-select" onchange="filterMatchups()">
+                <option value="ALL">All Teams</option>
+                <option value="NYJ">New York (NYJ)</option>
+                <option value="CLE">Cleveland (CLE)</option>
+                <option value="ATL">Atlanta (ATL)</option>
+                <option value="KC">Kansas City (KC)</option>
+                <option value="SF">San Francisco (SF)</option>
+                <option value="NE">New England (NE)</option>
+                <option value="GB">Green Bay (GB)</option>
+                <option value="DAL">Dallas (DAL)</option>
+            </select>
+        </div>
+    </div>
+    
+    <hr class="border-secondary my-3">
+
+    <!-- Pagination -->
+    <nav class="mb-4">
+        <ul class="pagination pagination-sm d-flex flex-wrap gap-1" id="week-pagination"></ul>
+    </nav>
+
+    <!-- Matchup Cards -->
+    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-3" id="matchups-container">
+        <!-- Rendered via JavaScript -->
+    </div>
+
+    <script>
+        let currentWeek = 1;
+        let currentMatchups = []; // Cache the current week's data to allow fast filtering
+
+        function getRoundName(week) {
+            if (week <= 18) return `Regular Season · Week ${week}`;
+            if (week === 19) return "Wildcard Round";
+            if (week === 20) return "Divisional Round";
+            if (week === 21) return "Conference Finals";
+            if (week === 22) return "Championship";
+            return "Offseason";
+        }
+
+        function renderPagination() {
+            const nav = document.getElementById('week-pagination');
+            nav.innerHTML = '';
+            for (let w = 1; w <= 22; w++) {
+                const li = document.createElement('li');
+                li.className = `page-item ${w === currentWeek ? 'active' : ''}`;
+                const label = w <= 18 ? `W${w}` : (w===19?'WC':w===20?'DIV':w===21?'CONF':'SB');
+                li.innerHTML = `<a class="page-link" href="#" onclick="loadWeek(${w}); return false;">${label}</a>`;
+                nav.appendChild(li);
+            }
+        }
+
+        async function loadWeek(weekNum) {
+            currentWeek = weekNum;
+            renderPagination();
+            document.getElementById('week-title').textContent = getRoundName(weekNum);
+            
+            try {
+                // Fetch from the decoupled FastAPI backend
+                const res = await fetch(`/api/schedule/week/${weekNum}`);
+                const data = await res.json();
+                
+                // Save data locally and trigger the filter/render pipeline
+                currentMatchups = data.matchups || [];
+                filterMatchups();
+
+            } catch (err) {
+                console.error("Error fetching schedule:", err);
+            }
+        }
+
+        function filterMatchups() {
+            const container = document.getElementById('matchups-container');
+            const selectedTeam = document.getElementById('teamFilter').value;
+            container.innerHTML = '';
+
+            // Filter logic: Show all if 'ALL' is selected, otherwise ensure the team is home or away
+            const filteredData = currentMatchups.filter(m => {
+                if (selectedTeam === "ALL") return true;
+                return m.away_team === selectedTeam || m.home_team === selectedTeam;
+            });
+
+            if (filteredData.length === 0) {
+                container.innerHTML = `<p class="text-muted w-100 mt-3">No matchups found for the selected filter this week.</p>`;
+                return;
+            }
+
+            // Render the filtered cards
+            filteredData.forEach(m => {
+                const card = document.createElement('div');
+                card.className = 'col';
+                
+                const borderClass = m.is_divisional ? 'conf1-border' : 'conf2-border';
+                const typeLabel = m.is_divisional ? 'Divisional' : 'Non-Conference';
+                
+                const awayClass = m.away_score > m.home_score ? 'team-winner' : '';
+                const homeClass = m.home_score > m.away_score ? 'team-winner' : '';
+                const scoreDisplay = m.is_completed ? `${m.away_score} - ${m.home_score}` : m.date;
+
+                card.innerHTML = `
+                    <div class="matchup-wrapper ${borderClass}">
+                        <a href="/gameday.html?match=${m.id}&away=${m.away_team}&home=${m.home_team}" class="d-block">
+                            <p class="matchup-type mb-1">${typeLabel}</p>
+                            <div class="d-flex justify-content-between h5 mb-1">
+                                <span class="${awayClass}">${m.away_team}</span>
+                                <span class="text-muted">@</span>
+                                <span class="${homeClass}">${m.home_team}</span>
+                            </div>
+                            <div class="d-flex justify-content-between matchup-record mb-2 border-bottom border-secondary pb-2">
+                                <span>${m.away_record}</span>
+                                <span>${m.home_record}</span>
+                            </div>
+                            <p class="mb-0 text-center fw-bold text-info">${scoreDisplay}</p>
+                        </a>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        // Initialize W1 on load
+        loadWeek(1);
+    </script>
+</body>
+</html>
