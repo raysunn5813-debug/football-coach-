@@ -1,0 +1,46 @@
+{
+  "rulesVersion": "NFL_2026",
+  "decisionPrinciple": "The team that DID NOT commit the penalty (the offended team) ALWAYS makes the decision to ACCEPT or DECLINE.",
+  "penalties": [
+    {
+      "code": "HOLDING_OFFENSE",
+      "name": "Offensive Holding",
+      "team": "OFFENSE",
+      "yards": 10,
+      "replayDown": true,
+      "lossOfDown": false,
+      "automaticFirstDown": false,
+      "cpuAcceptHeuristic": "Accept if gain was < 10 yards or on 3rd down to force 3rd-and-long."
+    },
+    {
+      "code": "HOLDING_DEFENSE",
+      "name": "Defensive Holding",
+      "team": "DEFENSE",
+      "yards": 5,
+      "replayDown": false,
+      "lossOfDown": false,
+      "automaticFirstDown": true,
+      "cpuAcceptHeuristic": "Always accept unless play resulted in a larger gain or turnover."
+    },
+    {
+      "code": "FALSE_START",
+      "name": "False Start",
+      "team": "OFFENSE",
+      "yards": 5,
+      "replayDown": true,
+      "lossOfDown": false,
+      "automaticFirstDown": false,
+      "cpuAcceptHeuristic": "Always accept (dead ball foul)."
+    },
+    {
+      "code": "PASS_INTERFERENCE_DEFENSE",
+      "name": "Defensive Pass Interference",
+      "team": "DEFENSE",
+      "yards": "SPOT_OF_FOUL",
+      "replayDown": false,
+      "lossOfDown": false,
+      "automaticFirstDown": true,
+      "cpuAcceptHeuristic": "Always accept unless caught for touchdown."
+    }
+  ]
+}
