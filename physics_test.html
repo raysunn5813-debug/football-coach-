@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Physics Engine Test Harness</title>
+    <style>
+        body {
+            background-color: #1a202c;
+            color: #cbd5e1;
+            font-family: sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 0;
+            padding: 20px;
+        }
+        canvas {
+            background-color: #2d3748;
+            border: 2px solid #4a5568;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .controls {
+            display: flex;
+            gap: 10px;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #3b82f6;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        button:hover { background-color: #2563eb; }
+    </style>
+</head>
+<body>
+    <h2>Vector Kinematics Verification</h2>
+    <canvas id="testCanvas" width="800" height="500"></canvas>
+    <div class="controls">
+        <button id="btn-apply-force">Apply Force (Right)</button>
+        <button id="btn-reset">Reset</button>
+    </div>
+
+    <script type="module">
+        import { Vector2 } from './js/physics/Vector2.js';
+        import { PhysicsEntity } from './js/physics/PhysicsEntity.js';
+        import { PhysicsEngine } from './js/physics/PhysicsEngine.js';
+
+        const canvas = document.getElementById('testCanvas');
+        const ctx = canvas.getContext('2d');
+
+        const engine = new PhysicsEngine();
+
+        // 1. Add Static Boundaries (the canvas walls)
+        engine.addStaticBox({ minX: 0, minY: -50, maxX: canvas.width, maxY: 0 }); // Top wall
+        engine.addStaticBox({ minX: 0, minY: canvas.height, maxX: canvas.width, maxY: canvas.height + 50 }); // Bottom
+        engine.addStaticBox({ minX: -50, minY: 0, maxX: 0, maxY: canvas.height }); // Left
+        engine.addStaticBox({ minX: canvas.width, minY: 0, maxX: canvas.width + 50, maxY: canvas.height }); // Right
+
+        // 2. Add Entities
+        let ball = new PhysicsEntity(400, 250, 10);
+        ball.maxSpeed = 200;
+        ball.friction = 0.02; // slides easily
+        ball.restitution = 0.8; // very bouncy
+        ball.mass = 1;
+        engine.registerEntity(ball, true);
+
+        let player = new PhysicsEntity(200, 250, 15);
+        player.maxSpeed = 100;
+        player.friction = 0.8; // stops quickly
+        player.restitution = 0.2; // heavy, low bounce
+        player.mass = 5; // heavier than ball
+        engine.registerEntity(player, false);
+
+        let lastTime = performance.now();
+
+        function gameLoop(now) {
+            const dt = (now - lastTime) / 1000; 
+            lastTime = now;
+
+            // Tick the Physics Engine accumulator
+            engine.tick(dt);
+
+            render();
+            requestAnimationFrame(gameLoop);
+        }
+
+        function render() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw Entities
+            for (const ent of engine.entities) {
+                ctx.beginPath();
+                ctx.arc(ent.position.x, ent.position.y, ent.radius, 0, Math.PI * 2);
+                ctx.fillStyle = ent === engine.ball ? '#facc15' : '#ef4444'; // Yellow for ball, red for player
+                ctx.fill();
+                ctx.strokeStyle = '#fff';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+
+                // Draw Velocity Vector
+                ctx.beginPath();
+                ctx.moveTo(ent.position.x, ent.position.y);
+                ctx.lineTo(ent.position.x + ent.velocity.x * 0.5, ent.position.y + ent.velocity.y * 0.5);
+                ctx.strokeStyle = '#3b82f6';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+            }
+        }
+
+        document.getElementById('btn-apply-force').addEventListener('click', () => {
+            // Player kicks directly at the ball (straight right)
+            player.applyForce(new Vector2(8000, 0)); 
+        });
+
+        document.getElementById('btn-reset').addEventListener('click', () => {
+            engine.entities = [];
+            
+            ball = new PhysicsEntity(400, 250, 10);
+            ball.maxSpeed = 200; ball.friction = 0.02; ball.restitution = 0.8; ball.mass = 1;
+            engine.registerEntity(ball, true);
+
+            player = new PhysicsEntity(200, 250, 15);
+            player.maxSpeed = 100; player.friction = 0.8; player.restitution = 0.2; player.mass = 5;
+            engine.registerEntity(player, false);
+        });
+
+        requestAnimationFrame(gameLoop);
+    </script>
+</body>
+</html>

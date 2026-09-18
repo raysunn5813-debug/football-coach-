@@ -1,0 +1,18 @@
+{
+  "name": "football-coach",
+  "version": "1.0.0",
+  "description": "Football coaching and playcalling game.",
+  "main": "frontend/index.html",
+  "scripts": {
+    "dev": "python backend/run.py",
+    "start": "python backend/run.py"
+  },
+  "keywords": [
+    "football",
+    "coaching",
+    "simulation",
+    "chalkboard"
+  ],
+  "author": "Antigravity",
+  "license": "ISC"
+}
